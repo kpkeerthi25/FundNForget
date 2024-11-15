@@ -7,3 +7,6 @@
 [submodule "FundNForget-foundry/lib/v4-template"]
 	path = FundNForget-foundry/lib/v4-template
 	url = https://github.com/uniswapfoundation/v4-template
+[submodule "FundNForget-foundry/lib/sign-protocol-evm"]
+	path = FundNForget-foundry/lib/sign-protocol-evm
+	url = https://github.com/EthSign/sign-protocol-evm
