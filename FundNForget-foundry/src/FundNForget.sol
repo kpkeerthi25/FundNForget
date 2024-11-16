@@ -7,6 +7,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 
 contract FundNForget is ReentrancyGuard {
     uint256 private _subscriptionIdCounter = 0;
+    string test = "hi world";
 
     struct Investment {
         address tokenAddress;
