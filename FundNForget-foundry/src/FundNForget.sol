@@ -237,6 +237,17 @@ contract FundNForget is ReentrancyGuard, IEntropyConsumer {
         
     }
 
+    // redeeming the funds
+    function cashOutSubsription(uint256 subscriptionId) external payable {
+        StrategySubscription memory subscription = subscriptionIdToStrategySubscriptionMapping[subscriptionId];
+        require(msg.sender == subscription.user, "only investor can cash out his funds");
+        for (uint256 i = 0; i < subscription.investments.length; i++) {
+            IERC20 token = IERC20(subscription.investments[i].tokenAddress);
+            token.transfer(msg.sender, subscription.investments[i].value);
+        }
+        subscriptionIdToStrategySubscriptionMapping[subscriptionId].isActive = false;
+    }
+
     //TODO
     // Function called from backend application for swap action
     function performSwapOnBefalf(
