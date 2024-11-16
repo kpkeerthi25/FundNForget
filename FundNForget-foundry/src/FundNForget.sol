@@ -9,33 +9,33 @@ import {IEntropyConsumer} from "@pythnetwork/entropy-sdk-solidity/IEntropyConsum
 import {IEntropy} from "@pythnetwork/entropy-sdk-solidity/IEntropy.sol";
 
 contract FundNForget is ReentrancyGuard, IEntropyConsumer {
+
+    // -----------------------------------------------
+    // NOTE: Pyth Network utils
+    // -----------------------------------------------
+
     IPyth pyth;
     IEntropy public entropy;
     address provider;
 
-    uint256 private _subscriptionIdCounter = 0;
     mapping(address => bytes32) pythNetworkMapping;
 
     event Log(address);
+    event LogNumber(uint256);
 
     constructor() {
         // Hard coding base sepolia pyth contract
         pyth = IPyth(0xA2aa501b19aff244D90cc15a4Cf739D2725B5729);
         entropy = IEntropy(0x41c9e39574F40Ad34c79f1C99B66A45eFB830d4c);
         provider = entropy.getDefaultProvider();
+        
         // base-eth
-        pythNetworkMapping[
-            0x5dEaC602762362FE5f135FA5904351916053cF70
-        ] = 0xeaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a;
+        pythNetworkMapping[0x5dEaC602762362FE5f135FA5904351916053cF70] = 0xeaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a;
         //base-usdc
-        pythNetworkMapping[
-            0x4200000000000000000000000000000000000006
-        ] = 0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace;
+        pythNetworkMapping[0x4200000000000000000000000000000000000006] = 0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace;
         //base-synthetic-uni
         //mocking uni erc-20 in base sepolia
-        pythNetworkMapping[
-            0x6021D8Cc4388f917fc75766dA67eC54A1b4e4Cc6
-        ] = 0x78d185a741d07edb3412b09008b7c5cfb9bbbd7d568bf00ba737b456ba171501;
+        pythNetworkMapping[0x6021D8Cc4388f917fc75766dA67eC54A1b4e4Cc6] = 0x78d185a741d07edb3412b09008b7c5cfb9bbbd7d568bf00ba737b456ba171501;
     }
 
     // This method is required by the IEntropyConsumer interface
@@ -43,7 +43,7 @@ contract FundNForget is ReentrancyGuard, IEntropyConsumer {
         return address(entropy);
     }
 
-    function request(bytes32 userRandomNumber) external payable {
+    function requestRandomNumber(bytes32 userRandomNumber) external payable returns(uint64) {
         // get the required fee
         uint128 requestFee = entropy.getFee(provider);
         // check if the user has sent enough fees
@@ -55,8 +55,7 @@ contract FundNForget is ReentrancyGuard, IEntropyConsumer {
             userRandomNumber
         );
 
-        // emit event
-        // emit FlipRequested(sequenceNumber);
+        return sequenceNumber;
     }
 
     function entropyCallback(
@@ -67,10 +66,24 @@ contract FundNForget is ReentrancyGuard, IEntropyConsumer {
         address _providerAddress,
         bytes32 randomNumber
     ) internal override {
-        bool isHeads = uint256(randomNumber) % 2 == 0;
-
-        // emit FlipResult(sequenceNumber, isHeads);
+        pythSequenceNumberToRandomNumberMapping[sequenceNumber] = uint256(mapRandomNumber(randomNumber, 0, int256(fundManagers.length-1)));
     }
+
+    function mapRandomNumber(
+        bytes32 randomNumber,
+        int256 minRange,
+        int256 maxRange
+    ) internal returns (int256) {
+        uint256 range = uint256(maxRange - minRange + 1);
+        return minRange + int256(uint256(randomNumber) % range);
+    }
+
+    // -----------------------------------------------
+    // NOTE: bussiness logic starts here
+    // -----------------------------------------------
+
+    // To enable subscribing to random fund-Manager
+    address NULL_ADDRESS = 0x0000000000000000000000000000000000000000;
 
     struct Investment {
         address tokenAddress;
@@ -94,6 +107,10 @@ contract FundNForget is ReentrancyGuard, IEntropyConsumer {
         uint256 lastUpdated;
         bool isActive;
     }
+
+    uint256 private _subscriptionIdCounter = 0;
+
+    mapping(uint64 => uint256) private pythSequenceNumberToRandomNumberMapping;
 
     // SubscriptionId to StrategySubscription mapping
     mapping(uint256 => StrategySubscription)
@@ -120,9 +137,7 @@ contract FundNForget is ReentrancyGuard, IEntropyConsumer {
             emit Log(fundMangerAddress);
             fundManagers.push(fundMangerAddress);
         }
-        fundManagerToLatestAttestationMapping[
-            fundMangerAddress
-        ] = latestStrategyAttestationId;
+        fundManagerToLatestAttestationMapping[fundMangerAddress] = latestStrategyAttestationId;
     }
 
     function getLatestStrategyAttestation(
@@ -141,16 +156,12 @@ contract FundNForget is ReentrancyGuard, IEntropyConsumer {
         uint256 count = 0;
 
         for (uint256 i = 0; i < _subscriptionIdCounter; i++) {
-            if (
-                subscriptionIdToStrategySubscriptionMapping[i].fundManager ==
-                fundMangerAddress
-            ) {
+            if (subscriptionIdToStrategySubscriptionMapping[i].fundManager == fundMangerAddress) {
                 tempSubscriptions[i] = subscriptionIdToStrategySubscriptionMapping[i];
                 count++;
             }
         }
-        StrategySubscription[]
-            memory filteredSubscriptions = new StrategySubscription[](count);
+        StrategySubscription[] memory filteredSubscriptions = new StrategySubscription[](count);
 
         for (uint256 i = 0; i < count; i++) {
             filteredSubscriptions[i] = tempSubscriptions[i];
@@ -174,23 +185,29 @@ contract FundNForget is ReentrancyGuard, IEntropyConsumer {
     //TODO
     // This function will be called from UI as a user-action to deposit and create a
     // subscription for an investmentStrategy.
+
+    //If choosing random fundManager - UI will call requestRandomNumber and pass sequenceNumber
     function createSubscriptionForUser(
         address fundManagerAddress,
         uint64 strategyAttestationId, //optional
-        Investment[] memory initialInvestments
+        Investment[] memory initialInvestments,
+        uint64 sequenceNumber //only for randomising fundManager
     ) external payable nonReentrant {
         require(
             fundManagerToLatestAttestationMapping[fundManagerAddress] ==
-                strategyAttestationId,
+                strategyAttestationId || fundManagerAddress == NULL_ADDRESS,
             "provided strategyId is not the valid for the fundManager"
         );
 
+        if(fundManagerAddress == NULL_ADDRESS) {
+            uint256 randomFundManagerIndex = pythSequenceNumberToRandomNumberMapping[sequenceNumber];
+            fundManagerAddress = fundManagers[randomFundManagerIndex];
+        }
+
         uint256 initialInvestmentValue = 0;
-        uint256 maxApproval = type(uint256).max;
 
         for (uint256 i = 0; i < initialInvestments.length; i++) {
             IERC20 token = IERC20(initialInvestments[i].tokenAddress);
-            token.approve(address(this), maxApproval);
             token.transferFrom(
                 msg.sender,
                 address(this),
@@ -215,12 +232,9 @@ contract FundNForget is ReentrancyGuard, IEntropyConsumer {
         );
 
         subscriptionIdToStrategySubscriptionMapping[_subscriptionIdCounter] = subscription;
-        userToStrategySubscriptionIdMapping[msg.sender].push(
-            _subscriptionIdCounter
-        );
+        userToStrategySubscriptionIdMapping[msg.sender].push(_subscriptionIdCounter);
         _subscriptionIdCounter += 1;
-
-        // off-chain call to nodeJs for resolving the swaps.
+        
     }
 
     //TODO
@@ -240,14 +254,8 @@ contract FundNForget is ReentrancyGuard, IEntropyConsumer {
                 userToStrategySubscriptionIdMapping[msg.sender].length
             );
 
-        for (
-            uint256 i = 0;
-            i < userToStrategySubscriptionIdMapping[msg.sender].length;
-            i++
-        ) {
-            subscriptions[i] = subscriptionIdToStrategySubscriptionMapping[
-                userToStrategySubscriptionIdMapping[msg.sender][i]
-            ];
+        for ( uint256 i = 0; i < userToStrategySubscriptionIdMapping[msg.sender].length;i++) {
+            subscriptions[i] = subscriptionIdToStrategySubscriptionMapping[userToStrategySubscriptionIdMapping[msg.sender][i]];
         }
         return subscriptions;
     }
