@@ -1,6 +1,11 @@
 const abi = [
 	{
 		"inputs": [],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [],
 		"name": "ReentrancyGuardReentrantCall",
 		"type": "error"
 	},
@@ -16,6 +21,42 @@ const abi = [
 		],
 		"name": "Log",
 		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "LogNumber",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint64",
+				"name": "sequence",
+				"type": "uint64"
+			},
+			{
+				"internalType": "address",
+				"name": "provider",
+				"type": "address"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "randomNumber",
+				"type": "bytes32"
+			}
+		],
+		"name": "_entropyCallback",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
 	},
 	{
 		"inputs": [
@@ -39,14 +80,22 @@ const abi = [
 	{
 		"inputs": [
 			{
+				"internalType": "uint256",
+				"name": "subscriptionId",
+				"type": "uint256"
+			}
+		],
+		"name": "cashOutSubsription",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
 				"internalType": "address",
 				"name": "fundManagerAddress",
 				"type": "address"
-			},
-			{
-				"internalType": "uint64",
-				"name": "strategyAttestationId",
-				"type": "uint64"
 			},
 			{
 				"components": [
@@ -64,6 +113,11 @@ const abi = [
 				"internalType": "struct FundNForget.Investment[]",
 				"name": "initialInvestments",
 				"type": "tuple[]"
+			},
+			{
+				"internalType": "uint64",
+				"name": "sequenceNumber",
+				"type": "uint64"
 			}
 		],
 		"name": "createSubscriptionForUser",
@@ -72,62 +126,17 @@ const abi = [
 		"type": "function"
 	},
 	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "subscriptionId",
-				"type": "uint256"
-			},
-			{
-				"components": [
-					{
-						"internalType": "address",
-						"name": "tokenA",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "tokenB",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "value",
-						"type": "uint256"
-					}
-				],
-				"internalType": "struct FundNForget.SwapObject[]",
-				"name": "SwapObjects",
-				"type": "tuple[]"
-			}
-		],
-		"name": "performSwapOnBefalf",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "fundMangerAddress",
-				"type": "address"
-			},
-			{
-				"internalType": "uint64",
-				"name": "latestStrategyAttestationId",
-				"type": "uint64"
-			}
-		],
-		"name": "upsertFundManagerStrategyAttestationMapping",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
 		"inputs": [],
-		"stateMutability": "nonpayable",
-		"type": "constructor"
+		"name": "entropy",
+		"outputs": [
+			{
+				"internalType": "contract IEntropy",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
 	},
 	{
 		"inputs": [],
@@ -387,6 +396,78 @@ const abi = [
 			}
 		],
 		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "subscriptionId",
+				"type": "uint256"
+			},
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "tokenA",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "tokenB",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "value",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct FundNForget.SwapObject[]",
+				"name": "SwapObjects",
+				"type": "tuple[]"
+			}
+		],
+		"name": "performSwapOnBefalf",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "userRandomNumber",
+				"type": "bytes32"
+			}
+		],
+		"name": "requestRandomNumber",
+		"outputs": [
+			{
+				"internalType": "uint64",
+				"name": "",
+				"type": "uint64"
+			}
+		],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "fundMangerAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "uint64",
+				"name": "latestStrategyAttestationId",
+				"type": "uint64"
+			}
+		],
+		"name": "upsertFundManagerStrategyAttestationMapping",
+		"outputs": [],
+		"stateMutability": "nonpayable",
 		"type": "function"
 	}
 ]

@@ -33,7 +33,7 @@ const FundManagerPage = () => {
             <FundStatistics />
           </Grid>
         </Grid>
-        <PastStrategies />
+        {/* <PastStrategies /> */}
       </Container>
     </Box>
   );

@@ -11,24 +11,28 @@ import {
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import FundManagerService from '../service/FundManagerService';
+import { usePrivy } from '@privy-io/react-auth';
 
 ChartJS.register(ArcElement, Tooltip, Legend, ChartDataLabels);
 
 const CurrentAllocations = () => {
   const [allocations, setAllocations] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
+  const { user, getEthersProvider } = usePrivy();
+
 
   useEffect(() => {
     const fetchStrategies = async () => {
       try {
-        const strategies = await FundManagerService.fetchStrategies();
+        const walletAddress = await getEthersProvider().getSigner().getAddress()
+        const strategies = await FundManagerService.fetchStrategies(walletAddress);
         
-        // Find the strategy with the latest start date
-        const latestStrategy = strategies.reduce((latest, strategy) =>
-          new Date(strategy.startDate) > new Date(latest.startDate) ? strategy : latest
-        );
+        console.log("Fet Str", strategies)
 
-        setAllocations(latestStrategy.allocations);
+        if (strategies.length){
+          const latestStrategy = strategies[0]
+          setAllocations(latestStrategy);
+        }
       } catch (error) {
         console.error('Error fetching strategies:', error);
       }

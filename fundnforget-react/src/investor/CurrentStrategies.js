@@ -19,17 +19,15 @@ const CurrentStrategies = () => {
   const { user, getEthersProvider } = usePrivy();
 
   useEffect(() => {
-    const fetchStrategies = async () => {
-      try {
-        const strategies = await InvestorDataService.getCurrentStrategies(getEthersProvider());
-        console.log(strategies)
-        setAllocations(strategies);
-      } catch (error) {
-        console.error('Error fetching strategies:', error);
-      }
-    };
-
-    fetchStrategies();
+    const provider = getEthersProvider();
+    provider.getNetwork().then(async (network) => {
+      console.log("Connected to network:", network);
+      const strategies = await InvestorDataService.getCurrentStrategies(getEthersProvider().getSigner());
+      setAllocations(strategies);
+      console.log(strategies)
+    }).catch((err) => {
+      console.error("Network error:", err);
+    });
   }, []);
 
   const handleOpenChartModal = (allocation) => {
@@ -157,7 +155,7 @@ const CurrentStrategies = () => {
 
       <InvestFundsModal 
         open={investFundsModalOpen} 
-        fundManager={selectedFundManager} 
+        fundManager={selectedFundManager}
         onClose={handleCloseInvestFundsModal} 
       />
     </Box>

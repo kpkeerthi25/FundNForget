@@ -18,31 +18,31 @@ const PastAllocations = () => {
 
   useEffect(() => {
     const fetchPastAllocations = async () => {
-      try {
-        const strategies = await FundManagerService.fetchStrategies();
+      // try {
+      //   const strategies = await FundManagerService.fetchStrategies();
 
-        // Find the latest start date
-        const latestStartDate = Math.max(
-          ...strategies.map((strategy) => new Date(strategy.startDate).getTime())
-        );
+      //   // Find the latest start date
+      //   const latestStartDate = Math.max(
+      //     ...strategies.map((strategy) => new Date(strategy.startDate).getTime())
+      //   );
 
-        // Exclude the strategy with the latest start date
-        const filteredStrategies = strategies.filter(
-          (strategy) =>
-            new Date(strategy.startDate).getTime() !== latestStartDate
-        );
+      //   // Exclude the strategy with the latest start date
+      //   const filteredStrategies = strategies.filter(
+      //     (strategy) =>
+      //       new Date(strategy.startDate).getTime() !== latestStartDate
+      //   );
 
-        // Transform data to include an `id` for React keys
-        const enrichedStrategies = filteredStrategies.map((strategy, index) => ({
-          id: index + 1,
-          avgDailyIncrease: null, // Placeholder for additional data if needed
-          ...strategy,
-        }));
+      //   // Transform data to include an `id` for React keys
+      //   const enrichedStrategies = filteredStrategies.map((strategy, index) => ({
+      //     id: index + 1,
+      //     avgDailyIncrease: null, // Placeholder for additional data if needed
+      //     ...strategy,
+      //   }));
 
-        setPastAllocations(enrichedStrategies);
-      } catch (error) {
-        console.error('Error fetching strategies:', error);
-      }
+      //   setPastAllocations(enrichedStrategies);
+      // } catch (error) {
+      //   console.error('Error fetching strategies:', error);
+      // }
     };
 
     fetchPastAllocations();

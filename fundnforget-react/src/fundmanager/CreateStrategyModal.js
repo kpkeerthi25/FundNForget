@@ -6,29 +6,29 @@ import FundManagerService from '../service/FundManagerService';
 
 const CreateStrategyModal = ({ open, onClose }) => {
   const [currencies, setCurrencies] = useState([
-    { id: 1, currency: '', allocation: '' },
+    { crypto: '', percentage: '' },
   ]);
-  const [availableCurrencies] = useState(['BTC', 'ETH', 'XRP', 'ADA', 'LTC']); // Static list for now
+  const [availableCurrencies] = useState(['ETH', 'USDC', 'SynUNI']); // Updated list of currencies
   const [totalAllocation, setTotalAllocation] = useState(0);
 
   const handleCurrencyChange = (index, value) => {
     const newCurrencies = [...currencies];
-    newCurrencies[index].currency = value;
+    newCurrencies[index].crypto = value;
     setCurrencies(newCurrencies);
   };
 
   const handleAllocationChange = (index, value) => {
     const newCurrencies = [...currencies];
-    newCurrencies[index].allocation = value;
+    newCurrencies[index].percentage = value;
     setCurrencies(newCurrencies);
 
     // Recalculate total allocation
-    const total = newCurrencies.reduce((sum, currency) => sum + (parseFloat(currency.allocation) || 0), 0);
+    const total = newCurrencies.reduce((sum, currency) => sum + (parseFloat(currency.percentage) || 0), 0);
     setTotalAllocation(total);
   };
 
   const addCurrency = () => {
-    setCurrencies([...currencies, { id: currencies.length + 1, currency: '', allocation: '' }]);
+    setCurrencies([...currencies, { crypto: '', percentage: '' }]);
   };
 
   const removeCurrency = (index) => {
@@ -36,17 +36,17 @@ const CreateStrategyModal = ({ open, onClose }) => {
     setCurrencies(newCurrencies);
 
     // Recalculate total allocation after removing
-    const total = newCurrencies.reduce((sum, currency) => sum + (parseFloat(currency.allocation) || 0), 0);
+    const total = newCurrencies.reduce((sum, currency) => sum + (parseFloat(currency.percentage) || 0), 0);
     setTotalAllocation(total);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Validate total allocation
     if (totalAllocation !== 100) {
       alert('Total allocation must be 100%');
       return;
     }
-    FundManagerService.createStrategy(currencies)
+    await FundManagerService.createStrategy(currencies);
     onClose();
   };
 
@@ -76,12 +76,12 @@ const CreateStrategyModal = ({ open, onClose }) => {
         </Grid>
 
         {currencies.map((currency, index) => (
-          <Grid container spacing={2} key={currency.id} sx={{ marginBottom: 2 }}>
+          <Grid container spacing={2} key={index} sx={{ marginBottom: 2 }}>
             <Grid item xs={5}>
               <FormControl fullWidth>
                 <InputLabel>Currency</InputLabel>
                 <Select
-                  value={currency.currency}
+                  value={currency.crypto}
                   label="Currency"
                   onChange={(e) => handleCurrencyChange(index, e.target.value)}
                 >
@@ -99,7 +99,7 @@ const CreateStrategyModal = ({ open, onClose }) => {
                 fullWidth
                 label="Allocation (%)"
                 type="number"
-                value={currency.allocation}
+                value={currency.percentage}
                 onChange={(e) => handleAllocationChange(index, e.target.value)}
                 inputProps={{ min: 0, max: 100 }}
               />
@@ -121,6 +121,7 @@ const CreateStrategyModal = ({ open, onClose }) => {
           <Grid item sx={{ display: 'flex', justifyContent: 'flex-start', width: 'auto' }}>
             <StyledButton
               onClick={addCurrency}
+              disabled={totalAllocation >= 100}
             >
               Add Currency
             </StyledButton>

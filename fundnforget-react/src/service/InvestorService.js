@@ -1,93 +1,106 @@
 import FundNForgetAbi from "../abi/FundNForgetAbi";
-import { ethers } from 'ethers';
+import { ethers, BigNumber } from 'ethers';
+import FundManagerService from "./FundManagerService";
+import FxConversionService from "./FxConversionService";
 
 class InvestorDataService {
-    
-    async getCurrentStrategies(provider) {
-      provider.getNetwork().then(() => {
-        console.log("Net avail,", provider)
-      })
-      const contractAddress = '0x92E3e75d6fd1c600577a025052e12Bbf70556898';
-      const contract = new ethers.Contract(contractAddress, FundNForgetAbi, provider);
-      return contract.getAllUserSubscriptions()
-    }
 
-    cashOutStrategy(provider, subscriptionId) {
-      const contractAddress = '0x92E3e75d6fd1c600577a025052e12Bbf70556898';
-      const contract = new ethers.Contract(contractAddress, FundNForgetAbi, provider);
-      return contract.getAllUserSubscriptions(subscriptionId)
-    }
+  contractAddress = '0xF425D06d5F95A4caa3452Cb608b461C85c44e646';
 
-    fetchFundManagers() {
-      return fundManagerData;
-    }
-
-    investFunds(investmentData) {
-
-    }
-
-    createSubscription(provider) {
-      const contractAddress = '0x92E3e75d6fd1c600577a025052e12Bbf70556898';
-      const contract = new ethers.Contract(contractAddress, FundNForgetAbi, provider);
-      contract.createSubscription("0x6021D8Cc4388f917fc75766dA67eC54A1b4e4Cc6", 100000000000000)
-    }
+  async getCurrentStrategies(provider) {
+    const contract = new ethers.Contract(this.contractAddress, FundNForgetAbi, provider);
+    const allSubscriptions = await contract.getAllUserSubscriptions();
+    console.log("OG", allSubscriptions)
+    const transformedSubscriptions = allSubscriptions.map(subscription => ({
+      subscriptionId: BigNumber.from(subscription[0]).toNumber(), // Convert hex to number
+      initialInvestmentValue: BigNumber.from(subscription[1]).toNumber(), // Convert hex to number
+      fundManager: subscription[2], // Already a string (address)
+      investor: subscription[3], // Already a string (address)
+      allocations: subscription[4].map(([address, value]) => ({
+        address, // Already a string
+        value: parseFloat(BigNumber.from(value).toString()), // Convert BigNumber to string
+      })),
+      status: BigNumber.from(subscription[5]).toNumber(), // Convert hex to number (if needed)
+      startDate: BigNumber.from(subscription[6]).toNumber(), // Convert hex timestamp to number
+      endDate: BigNumber.from(subscription[7]).toNumber(), // Convert hex timestamp to number
+      isActive: subscription[8], // Already a boolean
+    }));
+    console.log("Transf ", transformedSubscriptions)
+    // Filter and map to an array of Promises
+    const strategiesPromises = transformedSubscriptions
+      .filter((it) => it.isActive)
+      .map(async (it) => {
+        const allocations = (await FundManagerService.fetchStrategies(it.fundManager))[0];
+        const currentValue = 0 // TODO await FxConversionService.getUsdtValue(it.allocations)
+        return {
+          subscriptionId: it.subscriptionId,
+          walletId: it.fundManager,
+          investedAmount: it.initialInvestmentValue,
+          currentAmount: currentValue,
+          startDate: new Date(it.startDate * 1000).toISOString(),
+          allocations,
+        };
+      });
+  
+    // Wait for all Promises to resolve
+    return Promise.all(strategiesPromises);
   }
 
-  const fundManagerData = [
-    {
-      id: 1,
-      walletId: '0x0868574DC2E9cc0581598006CC84387D556EBF46',
-      subscriberCount: 120,
-      investedValue: 100000,
-      currentValue: 120000,
-      performance30d: 3.5,
-    },
-    {
-      id: 2,
-      walletId: '0x1234567ABCDEF1234567890ABCDEF1234567890',
-      subscriberCount: 85,
-      investedValue: 80000,
-      currentValue: 95000,
-      performance30d: 4.2,
-    },
-    {
-      id: 3,
-      walletId: '0x9876543210ABCDEF9876543210ABCDEF98765432',
-      subscriberCount: 150,
-      investedValue: 120000,
-      currentValue: 150000,
-      performance30d: 6.2,
-    },
-  ];
+  // console.log(await InvestorService.getCurrentStrategies(getEthersProvider().getSigner()))
+
+  getTokenSymbol(contractAddress) {
+      const mapX = {
+          "0x5dEaC602762362FE5f135FA5904351916053cF70": "ETH",
+          "0x4200000000000000000000000000000000000006": "USDC",
+          "0x6021D8Cc4388f917fc75766dA67eC54A1b4e4Cc6": "SynUNI"
+      }
+      return mapX[contractAddress]
+  }
   
-  const currentStrategies = [
-    {
-      id: 1,
-      subscriptionId: 'SUB123',
-      walletId: '0x0868574DC2E9cc0581598006CC84387D556EBF46',
-      investedAmount: 10000,
-      currentAmount: 12000,
-      startDate: '2024-01-01',
-      allocations: [
-        { crypto: 'BTC', percentage: 40 },
-        { crypto: 'ETH', percentage: 35 },
-        { crypto: 'XRP', percentage: 25 },
-      ],
-    },
-    {
-      id: 2,
-      subscriptionId: 'SUB456',
-      walletId: '0x0868574DC2E9cc0581598006CC84387D556EBF46',
-      investedAmount: 8000,
-      currentAmount: 9500,
-      startDate: '2024-02-15',
-      allocations: [
-        { crypto: 'BTC', percentage: 50 },
-        { crypto: 'ETH', percentage: 30 },
-        { crypto: 'ADA', percentage: 20 },
-      ],
-    },
-  ];
-  
-  export default new InvestorDataService();
-  
+
+  async getAllStrategies(provider) {
+    const fundManagers = await this.fetchFundManagers(provider)
+    fundManagers.forEach(async (fundManager) => {
+        console.log(await FundManagerService.fetchStrategies(fundManager))
+    });
+  }
+
+  async cashOutStrategy(provider, subscriptionId) {
+    const contract = new ethers.Contract(this.contractAddress, FundNForgetAbi, provider);
+    return contract.getAllUserSubscriptions(subscriptionId) // TODO
+  }
+
+  async fetchFundManagers(provider) {
+    const contract = new ethers.Contract(this.contractAddress, FundNForgetAbi, provider);
+    const managerAddresses = await contract.getAllFundManagerAddresses()
+    const proms = managerAddresses.map(async(it) => {
+      const subscriptions = await FundManagerService.getAllSubscriptionsForFundManager(it, provider)
+      const subscriberCount = FundManagerService.getSubscriptionCount(subscriptions)
+      const investedValue = FundManagerService.getInvestedValue(subscriptions)
+      return {
+        walletId: it,
+        subscriberCount,
+        investedValue
+      }
+    })
+    return Promise.all(proms)
+  }
+
+  // await InvestorService.fetchFundManagers(getEthersProvider())
+
+  async investFunds(signer, fundManagerAddress, investmentData) {
+    const contract = new ethers.Contract(this.contractAddress, FundNForgetAbi, signer);
+    const nonZero = investmentData.filter((it) => it.value != 0)
+    console.log("NONZ", nonZero)
+    await contract.createSubscriptionForUser(fundManagerAddress, nonZero, 0)
+  }
+
+  // await InvestorService.investFunds(
+//     getEthersProvider().getSigner(), "0x951e30c7A23f02Fbe2De2A252B946DBBb0b12825", 3289, 
+//     [
+//         {tokenAddress: "0x6021D8Cc4388f917fc75766dA67eC54A1b4e4Cc6", value: 100000000000000}
+//     ]
+// )
+}
+
+export default new InvestorDataService();
