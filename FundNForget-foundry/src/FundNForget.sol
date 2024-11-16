@@ -5,27 +5,72 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
 import "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
+import {IEntropyConsumer} from "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
+import {IEntropy} from "@pythnetwork/entropy-sdk-solidity/IEntropy.sol";
 
-
-contract FundNForget is ReentrancyGuard {
+contract FundNForget is ReentrancyGuard, IEntropyConsumer {
     IPyth pyth;
+    IEntropy public entropy;
+    address provider;
 
+    uint256 private _subscriptionIdCounter = 0;
     mapping(address => bytes32) pythNetworkMapping;
 
+    event Log(address);
+
     constructor() {
-    // Hard coding base sepolia pyth contract
-    pyth = IPyth(0xA2aa501b19aff244D90cc15a4Cf739D2725B5729);
+        // Hard coding base sepolia pyth contract
+        pyth = IPyth(0xA2aa501b19aff244D90cc15a4Cf739D2725B5729);
+        entropy = IEntropy(0x41c9e39574F40Ad34c79f1C99B66A45eFB830d4c);
+        provider = entropy.getDefaultProvider();
+        // base-eth
+        pythNetworkMapping[
+            0x5dEaC602762362FE5f135FA5904351916053cF70
+        ] = 0xeaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a;
+        //base-usdc
+        pythNetworkMapping[
+            0x4200000000000000000000000000000000000006
+        ] = 0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace;
+        //base-synthetic-uni
+        //mocking uni erc-20 in base sepolia
+        pythNetworkMapping[
+            0x6021D8Cc4388f917fc75766dA67eC54A1b4e4Cc6
+        ] = 0x78d185a741d07edb3412b09008b7c5cfb9bbbd7d568bf00ba737b456ba171501;
+    }
 
-    // base-eth
-    pythNetworkMapping[0x5dEaC602762362FE5f135FA5904351916053cF70] = 0xeaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a;
-    //base-usdc
-    pythNetworkMapping[0x4200000000000000000000000000000000000006] = 0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace;
-    //base-synthetic-uni
-    pythNetworkMapping[0x6021D8Cc4388f917fc75766dA67eC54A1b4e4Cc6] = 0x78d185a741d07edb3412b09008b7c5cfb9bbbd7d568bf00ba737b456ba171501;
+    // This method is required by the IEntropyConsumer interface
+    function getEntropy() internal view override returns (address) {
+        return address(entropy);
+    }
 
+    function request(bytes32 userRandomNumber) external payable {
+        // get the required fee
+        uint128 requestFee = entropy.getFee(provider);
+        // check if the user has sent enough fees
+        if (msg.value < requestFee) revert("not enough fees");
 
-  }
-    uint256 private _subscriptionIdCounter = 0;
+        // pay the fees and request a random number from entropy
+        uint64 sequenceNumber = entropy.requestWithCallback{value: requestFee}(
+            provider,
+            userRandomNumber
+        );
+
+        // emit event
+        // emit FlipRequested(sequenceNumber);
+    }
+
+    function entropyCallback(
+        uint64 sequenceNumber,
+        // If your app uses multiple providers, you can use this argument
+        // to distinguish which one is calling the app back. This app only
+        // uses one provider so this argument is not used.
+        address _providerAddress,
+        bytes32 randomNumber
+    ) internal override {
+        bool isHeads = uint256(randomNumber) % 2 == 0;
+
+        // emit FlipResult(sequenceNumber, isHeads);
+    }
 
     struct Investment {
         address tokenAddress;
@@ -60,6 +105,9 @@ contract FundNForget is ReentrancyGuard {
     // user to investment strategy subscription mapping.
     mapping(address => uint256[]) private userToStrategySubscriptionIdMapping;
 
+    // for fundManager list in investor page.
+    address[] private fundManagers;
+
     // -----------------------------------------------
     // NOTE: functions for fundManagers
     // -----------------------------------------------
@@ -68,7 +116,13 @@ contract FundNForget is ReentrancyGuard {
         address fundMangerAddress,
         uint64 latestStrategyAttestationId
     ) external {
-        fundManagerToLatestAttestationMapping[fundMangerAddress] = latestStrategyAttestationId;
+        if (fundManagerToLatestAttestationMapping[fundMangerAddress] < 1) {
+            emit Log(fundMangerAddress);
+            fundManagers.push(fundMangerAddress);
+        }
+        fundManagerToLatestAttestationMapping[
+            fundMangerAddress
+        ] = latestStrategyAttestationId;
     }
 
     function getLatestStrategyAttestation(
@@ -77,25 +131,40 @@ contract FundNForget is ReentrancyGuard {
         return fundManagerToLatestAttestationMapping[fundMangerAddress];
     }
 
-    function getAllSubscriptionsForFundManager( 
+    function getAllSubscriptionsForFundManager(
         address fundMangerAddress
-    ) external view returns(StrategySubscription[] memory) {
-        StrategySubscription[] memory tempSubscriptions = new StrategySubscription[](_subscriptionIdCounter);
+    ) external view returns (StrategySubscription[] memory) {
+        StrategySubscription[]
+            memory tempSubscriptions = new StrategySubscription[](
+                _subscriptionIdCounter
+            );
         uint256 count = 0;
-        
+
         for (uint256 i = 0; i < _subscriptionIdCounter; i++) {
-            if (subscriptionIdToStrategySubscriptionMapping[i].fundManager == fundMangerAddress) {
+            if (
+                subscriptionIdToStrategySubscriptionMapping[i].fundManager ==
+                fundMangerAddress
+            ) {
                 tempSubscriptions[i] = subscriptionIdToStrategySubscriptionMapping[i];
                 count++;
             }
         }
-        StrategySubscription[] memory filteredSubscriptions = new StrategySubscription[](count);
-        
+        StrategySubscription[]
+            memory filteredSubscriptions = new StrategySubscription[](count);
+
         for (uint256 i = 0; i < count; i++) {
             filteredSubscriptions[i] = tempSubscriptions[i];
         }
 
         return filteredSubscriptions;
+    }
+
+    function getAllFundManagerAddresses()
+        external
+        view
+        returns (address[] memory)
+    {
+        return fundManagers;
     }
 
     // -----------------------------------------------
@@ -111,20 +180,26 @@ contract FundNForget is ReentrancyGuard {
         Investment[] memory initialInvestments
     ) external payable nonReentrant {
         require(
-            fundManagerToLatestAttestationMapping[fundManagerAddress] == strategyAttestationId,
+            fundManagerToLatestAttestationMapping[fundManagerAddress] ==
+                strategyAttestationId,
             "provided strategyId is not the valid for the fundManager"
         );
 
         uint256 initialInvestmentValue = 0;
+        uint256 maxApproval = type(uint256).max;
 
         for (uint256 i = 0; i < initialInvestments.length; i++) {
             IERC20 token = IERC20(initialInvestments[i].tokenAddress);
-            token.transferFrom(msg.sender, address(this), initialInvestments[i].value);
+            token.approve(address(this), maxApproval);
+            token.transferFrom(
+                msg.sender,
+                address(this),
+                initialInvestments[i].value
+            );
         }
 
         for (uint256 i = 0; i < initialInvestments.length; i++) {
             IERC20 token = IERC20(initialInvestments[i].tokenAddress);
-
         }
 
         StrategySubscription memory subscription = StrategySubscription(
@@ -133,42 +208,63 @@ contract FundNForget is ReentrancyGuard {
             msg.sender,
             fundManagerAddress,
             initialInvestments,
-            0,                      //TODO
+            0, //TODO
             block.timestamp,
             block.timestamp,
             true
         );
 
         subscriptionIdToStrategySubscriptionMapping[_subscriptionIdCounter] = subscription;
-        userToStrategySubscriptionIdMapping[msg.sender].push(_subscriptionIdCounter);
+        userToStrategySubscriptionIdMapping[msg.sender].push(
+            _subscriptionIdCounter
+        );
         _subscriptionIdCounter += 1;
 
         // off-chain call to nodeJs for resolving the swaps.
-    
     }
 
     //TODO
     // Function called from backend application for swap action
-    function performSwapOnBefalf(uint256 subscriptionId, SwapObject[] calldata SwapObjects) external nonReentrant {}
+    function performSwapOnBefalf(
+        uint256 subscriptionId,
+        SwapObject[] calldata SwapObjects
+    ) external nonReentrant {}
 
-    function getAllUserSubscriptions() external view returns (StrategySubscription[] memory) {
-        StrategySubscription[] memory subscriptions =
-            new StrategySubscription[](userToStrategySubscriptionIdMapping[msg.sender].length);
+    function getAllUserSubscriptions()
+        external
+        view
+        returns (StrategySubscription[] memory)
+    {
+        StrategySubscription[]
+            memory subscriptions = new StrategySubscription[](
+                userToStrategySubscriptionIdMapping[msg.sender].length
+            );
 
-        for (uint256 i = 0; i < userToStrategySubscriptionIdMapping[msg.sender].length; i++) {
-            subscriptions[i] =
-                subscriptionIdToStrategySubscriptionMapping[userToStrategySubscriptionIdMapping[msg.sender][i]];
+        for (
+            uint256 i = 0;
+            i < userToStrategySubscriptionIdMapping[msg.sender].length;
+            i++
+        ) {
+            subscriptions[i] = subscriptionIdToStrategySubscriptionMapping[
+                userToStrategySubscriptionIdMapping[msg.sender][i]
+            ];
         }
         return subscriptions;
     }
 
-    function getSubscription(uint256 subscriptionId) external view returns (StrategySubscription memory) {
-        require(subscriptionId <= _subscriptionIdCounter, "Invalid subscriptionId");
+    function getSubscription(
+        uint256 subscriptionId
+    ) external view returns (StrategySubscription memory) {
+        require(
+            subscriptionId <= _subscriptionIdCounter,
+            "Invalid subscriptionId"
+        );
         return subscriptionIdToStrategySubscriptionMapping[subscriptionId];
     }
 
-    function calculateTokenUSDPrice(address tokenContract) public payable returns(uint256){
-        
+    function calculateTokenUSDPrice(
+        address tokenContract
+    ) public payable returns (uint256) {
         // Read the current price from a price feed if it is less than 60 seconds old.
         // Each price feed (e.g., ETH/USD) is identified by a price feed ID.
         // The complete list of feed IDs is available at https://pyth.network/developers/price-feed-ids
@@ -178,8 +274,8 @@ contract FundNForget is ReentrancyGuard {
         PythStructs.Price memory price = pyth.getPriceUnsafe(priceFeedId);
 
         // represent in usd * 10e18
-        uint256 calculatedPrice = (uint(uint64(price.price)) * (10 ** 18)) / (10 ** uint8(uint32(-1 * price.expo)));
+        uint256 calculatedPrice = (uint(uint64(price.price)) * (10 ** 18)) /
+            (10 ** uint8(uint32(-1 * price.expo)));
         return calculatedPrice;
-  }
-    
+    }
 }
