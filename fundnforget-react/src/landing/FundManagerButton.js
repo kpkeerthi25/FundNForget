@@ -12,9 +12,9 @@ const FundManagerButton = () => {
 
   useEffect(() => {
     if (authenticated && !isInvestor) {
-      navigate('/fund-manager');
+        navigate('/fund-manager'); 
     }
-  }, [authenticated, navigate, setIsInvestor]);
+}, [authenticated, navigate, setIsInvestor]);
 
   return (
     <Button

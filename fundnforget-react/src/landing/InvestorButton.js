@@ -12,9 +12,9 @@ const InvestorButton = () => {
 
   useEffect(() => {
     if (authenticated && isInvestor) {
-      navigate('/investor');
+        navigate('/investor');
     }
-  }, [authenticated, navigate, setIsInvestor]);
+}, [authenticated, navigate, setIsInvestor]);
 
   return (
     <Button
