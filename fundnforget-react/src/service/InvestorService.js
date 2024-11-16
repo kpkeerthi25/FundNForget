@@ -1,15 +1,21 @@
+import FundNForgetAbi from "../abi/FundNForgetAbi";
+import { ethers } from 'ethers';
+
 class InvestorDataService {
     
-    getCurrentStrategies(walletId) {
-      // use smart contract to get all subscriptions for the user
-      // this has attestation ID 
-      // query sign protocol with this
-      // Use lit to decrypt
-      return currentStrategies.filter(strategy => strategy.walletId === walletId);
+    async getCurrentStrategies(provider) {
+      provider.getNetwork().then(() => {
+        console.log("Net avail,", provider)
+      })
+      const contractAddress = '0x92E3e75d6fd1c600577a025052e12Bbf70556898';
+      const contract = new ethers.Contract(contractAddress, FundNForgetAbi, provider);
+      return contract.getAllUserSubscriptions()
     }
 
-    cashOutStrategy(walletId, subscriptionId) {
-      
+    cashOutStrategy(provider, subscriptionId) {
+      const contractAddress = '0x92E3e75d6fd1c600577a025052e12Bbf70556898';
+      const contract = new ethers.Contract(contractAddress, FundNForgetAbi, provider);
+      return contract.getAllUserSubscriptions(subscriptionId)
     }
 
     fetchFundManagers() {
@@ -18,6 +24,12 @@ class InvestorDataService {
 
     investFunds(investmentData) {
 
+    }
+
+    createSubscription(provider) {
+      const contractAddress = '0x92E3e75d6fd1c600577a025052e12Bbf70556898';
+      const contract = new ethers.Contract(contractAddress, FundNForgetAbi, provider);
+      contract.createSubscription("0x6021D8Cc4388f917fc75766dA67eC54A1b4e4Cc6", 100000000000000)
     }
   }
 

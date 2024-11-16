@@ -7,6 +7,7 @@ import InsertChartIcon from '@mui/icons-material/InsertChart';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import InvestorDataService from '../service/InvestorService';
 import InvestFundsModal from './InvestFundsModal';
+import { usePrivy } from '@privy-io/react-auth';
 
 const CurrentStrategies = () => {
   const [allocations, setAllocations] = useState([]);
@@ -15,12 +16,13 @@ const CurrentStrategies = () => {
   const [investFundsModalOpen, setInvestFundsModalOpen] = useState(false);
   const [selectedAllocation, setSelectedAllocation] = useState(null);
   const [selectedFundManager, setSelectedFundManager] = useState(null);
+  const { user, getEthersProvider } = usePrivy();
 
   useEffect(() => {
     const fetchStrategies = async () => {
       try {
-        const walletId = '0x0868574DC2E9cc0581598006CC84387D556EBF46';
-        const strategies = await InvestorDataService.getCurrentStrategies(walletId);
+        const strategies = await InvestorDataService.getCurrentStrategies(getEthersProvider());
+        console.log(strategies)
         setAllocations(strategies);
       } catch (error) {
         console.error('Error fetching strategies:', error);
@@ -42,10 +44,8 @@ const CurrentStrategies = () => {
 
   const handleCashOut = async (subscriptionId) => {
     try {
-      const walletId = '0x0868574DC2E9cc0581598006CC84387D556EBF46';
-      const result = await InvestorDataService.cashOutStrategy(walletId, subscriptionId);
+      const result = await InvestorDataService.cashOutStrategy(getEthersProvider(), subscriptionId);
       if (result.success) {
-        alert(`Successfully cashed out subscription: ${subscriptionId}`);
         setAllocations((prev) => prev.filter((item) => item.subscriptionId !== subscriptionId));
       } else {
         alert(`Cash out failed: ${result.error}`);
@@ -79,9 +79,20 @@ const CurrentStrategies = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h5">Current Strategies</Typography>
         <Box>
-          <StyledButton onClick={() => {
-            
-          }}>Explore in BlockScout</StyledButton>
+          <StyledButton 
+            onClick={async () => {
+              window.open('https://base-sepolia.blockscout.com/address/' + user.wallet.address, '_blank', 'noopener,noreferrer');
+            }}
+            sx={{
+              backgroundColor: '#818CF8',
+              color: 'white',
+              textTransform: 'none',
+              fontWeight: 'bold',
+              borderRadius: '50px',
+              marginRight: "10px",
+              '&:hover': { backgroundColor: '#6B72DF' },
+            }}
+          >Explore in BlockScout</StyledButton>
           <StyledButton onClick={handleInvestMore}>Invest More</StyledButton>
         </Box>
       </Box>
