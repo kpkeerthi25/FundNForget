@@ -10,6 +10,29 @@ It has three major components:
 2. Off chain Node.JS app
 3. React based front-end
 
+## On-Chain Smart Contract
+
+The onchain smart contract is where the data related to the investments and the assets are maintained. 
+
+### Integrations Used
+
+#### Pyth Price Feeds
+
+Pyth price feeds are used to value the initial investments of users in USDT. This helps them track their PnL in a daily manner. This is also used to value the portfolio so that the swaps can be performed.
+
+#### Uniswap
+
+Uniswap is used to swap the currencies to maintain the assets according to the fund's chosen strategy.
+
+### Pyth entropy 
+
+Pyth entropy module is used to generate random numbers so that investors who are confused about what fund to invest in can randomize their investments.
+
+### Sign Protocol Event Listeners
+
+The strategy updates are done directly on the sign protocol schema. And whenever this happens, the assets have to be re-allocated according to the new strategy. Triggering this process in an event-driven manner is done through the usage of sign protocol's hook as event listeners.
+
+
 ## Front-End
 
 The front end is exposed to both the fund managers and investors. As sson as a user lands in our page, they're given the option to select whether they're an investor or a fund manager and the subsequent options are based on this selection. The code for this is under `fundnforget-react`. The following can be deon to start the front end locally.
