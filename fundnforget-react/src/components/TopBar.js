@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Typography, Button, AppBar, Toolbar } from '@mui/material';
 import SmartInvestLogo from '../assets/images/logo.png';
+import { Link } from 'react-router-dom';
 
 const TopBar = () => {
 
@@ -18,39 +19,45 @@ const TopBar = () => {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-          <Button
+          <Button 
+            component={Link} 
+            to="/" 
             sx={{
-              color: '#374151',
-              textTransform: 'none',
-              fontWeight: 'bold',
-              '&:hover': {
-                color: '#818CF8',
+              color: '#374151', 
+              textTransform: 'none', 
+              fontWeight: 'bold', 
+              '&:hover': { 
+                color: '#818CF8', 
                 backgroundColor: 'transparent',
               }
             }}
           >
             Home
           </Button>
-          <Button
+          <Button 
+            component={Link} 
+            to="/how-it-works" 
             sx={{
-              color: '#374151',
-              textTransform: 'none',
-              fontWeight: 'bold',
-              '&:hover': {
-                color: '#818CF8',
+              color: '#374151', 
+              textTransform: 'none', 
+              fontWeight: 'bold', 
+              '&:hover': { 
+                color: '#818CF8', 
                 backgroundColor: 'transparent',
               }
             }}
           >
             How it Works
           </Button>
-          <Button
+          <Button 
+            component={Link} 
+            to="/contact" 
             sx={{
-              color: '#374151',
-              textTransform: 'none',
-              fontWeight: 'bold',
-              '&:hover': {
-                color: '#818CF8',
+              color: '#374151', 
+              textTransform: 'none', 
+              fontWeight: 'bold', 
+              '&:hover': { 
+                color: '#818CF8', 
                 backgroundColor: 'transparent',
               }
             }}
