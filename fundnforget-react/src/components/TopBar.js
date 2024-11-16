@@ -1,9 +1,12 @@
 import React from 'react';
 import { Box, Typography, Button, AppBar, Toolbar } from '@mui/material';
 import SmartInvestLogo from '../assets/images/logo.png';
+import { usePrivy } from '@privy-io/react-auth';
 import { Link } from 'react-router-dom';
+import LogoutButton from './LogoutButton';
 
 const TopBar = () => {
+  const { authenticated } = usePrivy();
 
   return (
     <AppBar position="sticky" elevation={0} sx={{ backgroundColor: '#FFF1F2' }}>
@@ -64,6 +67,7 @@ const TopBar = () => {
           >
             Contact Us
           </Button>
+          {authenticated && (<LogoutButton />)}
         </Box>
       </Toolbar>
     </AppBar>

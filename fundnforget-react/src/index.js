@@ -2,16 +2,32 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
+import { PrivyProvider } from '@privy-io/react-auth';
 import reportWebVitals from './reportWebVitals';
+import { InvestorProvider } from './context/InvestorContext';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <InvestorProvider>
+      <PrivyProvider
+        appId="cm3jozg0802fig6vusm97pu3h"
+        config={{
+          loginMethods: ['wallet'],
+          appearance: {
+            theme: 'light',
+            accentColor: '#818CF8',
+            logo: 'https://your-logo-url',
+          },
+          embeddedWallets: {
+            createOnLogin: 'users-without-wallets',
+          },
+        }}
+      >
+        <App />
+      </PrivyProvider>
+    </InvestorProvider>
   </React.StrictMode>
 );
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
 reportWebVitals();
