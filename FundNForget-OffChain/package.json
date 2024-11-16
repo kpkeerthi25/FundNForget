@@ -1,0 +1,21 @@
+{
+  "name": "fund-n-forget-off-chain",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "type": "module",
+  "dependencies": {
+    "@ethsign/sp-sdk": "^0.7.7",
+    "@lit-protocol/lit-node-client": "^6.11.0",
+    "@openzeppelin/contracts": "^5.1.0",
+    "ethers": "^6.13.4",
+    "express": "^4.21.1"
+  }
+}
