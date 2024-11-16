@@ -35,3 +35,7 @@ Privy is used in the front end to onboard the users and also to maintain the aut
 #### Blockscout
 
 Block scout explorer link to the investors wallet is provided on their screen so that the users can examine their transactions and also track their balances.
+
+#### Sign Protocol
+
+The strategies that the fund managers use is stored in an encrypted manner using sign protocol's schemas. Lit protocol is used to encrypt the data related to these strategies. The users who have invested in a particular fund access these strategies directly using the sign protocol.
