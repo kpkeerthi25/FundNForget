@@ -8,6 +8,7 @@ import "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
 import {IEntropyConsumer} from "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
 import {IEntropy} from "@pythnetwork/entropy-sdk-solidity/IEntropy.sol";
 
+
 contract FundNForget is ReentrancyGuard, IEntropyConsumer {
 
     // -----------------------------------------------
@@ -189,16 +190,10 @@ contract FundNForget is ReentrancyGuard, IEntropyConsumer {
     //If choosing random fundManager - UI will call requestRandomNumber and pass sequenceNumber
     function createSubscriptionForUser(
         address fundManagerAddress,
-        uint64 strategyAttestationId, //optional
         Investment[] memory initialInvestments,
         uint64 sequenceNumber //only for randomising fundManager
     ) external payable nonReentrant {
-        require(
-            fundManagerToLatestAttestationMapping[fundManagerAddress] ==
-                strategyAttestationId || fundManagerAddress == NULL_ADDRESS,
-            "provided strategyId is not the valid for the fundManager"
-        );
-
+        
         if(fundManagerAddress == NULL_ADDRESS) {
             uint256 randomFundManagerIndex = pythSequenceNumberToRandomNumberMapping[sequenceNumber];
             fundManagerAddress = fundManagers[randomFundManagerIndex];
@@ -221,7 +216,7 @@ contract FundNForget is ReentrancyGuard, IEntropyConsumer {
 
         StrategySubscription memory subscription = StrategySubscription(
             _subscriptionIdCounter,
-            strategyAttestationId,
+            fundManagerToLatestAttestationMapping[fundManagerAddress],
             msg.sender,
             fundManagerAddress,
             initialInvestments,
