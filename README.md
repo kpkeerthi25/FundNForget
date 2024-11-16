@@ -46,3 +46,12 @@ The strategies that the fund managers use is stored in an encrypted manner using
 
 The off chain Node.JS app is used to compute the swaps between the various cryptocurrencies used in the strategies. This cannot be done on chain as we want this data to be hidden from the public eye. The backend app uses sign protocol to access the strategy data and lit protocol to decode the encrypted value and then performs the swap operation.
 
+### Integrations Used
+
+#### Sign Protocol
+
+The strategies that the fund managers use is stored in an encrypted manner using sign protocol. Sign protocol is used to query this information so that the strategies can be implemented by the smart contracts.
+
+#### Lit Protocol
+
+The actual encryption of the data in the sign protocol schemas is handled using the lit protocol so as to perform this process in a trustless distriuted manner. So decoding this data will again require the usage of Lit protocol from the backend.
