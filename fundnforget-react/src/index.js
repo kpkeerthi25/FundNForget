@@ -5,6 +5,7 @@ import App from './App';
 import { PrivyProvider } from '@privy-io/react-auth';
 import reportWebVitals from './reportWebVitals';
 import { InvestorProvider } from './context/InvestorContext';
+import logo from './assets/images/logo.png';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -17,7 +18,7 @@ root.render(
           appearance: {
             theme: 'light',
             accentColor: '#818CF8',
-            logo: 'https://your-logo-url',
+            logo, 
           },
           embeddedWallets: {
             createOnLogin: 'users-without-wallets',

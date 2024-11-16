@@ -2,15 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { Modal, Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import StyledButton from '../components/StyledButton';
-import InvestorDataService from '../service/InvestorService';
+import InvestorService from '../service/InvestorService';
+import { usePrivy } from '@privy-io/react-auth';
 
 const FundManagerSelectModal = ({ open, onSelect, onClose }) => {
   const [fundManagers, setFundManagers] = useState([]);
+  const { getEthersProvider } = usePrivy();
+
 
   useEffect(() => {
     if (open) {
       const fetchData = async () => {
-        const fetchedManagers = await InvestorDataService.fetchFundManagers();
+        const fetchedManagers = await InvestorService.fetchFundManagers(getEthersProvider().getSigner())
+        console.log("FMS", fetchedManagers)
         setFundManagers(fetchedManagers);
       };
       fetchData();
@@ -45,9 +49,9 @@ const FundManagerSelectModal = ({ open, onSelect, onClose }) => {
                 <TableCell sx={{ fontWeight: 'bold', color: '#818CF8' }}>Wallet ID</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', color: '#818CF8' }} align="center">Subscribers</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', color: '#818CF8' }} align="center">Invested Value</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', color: '#818CF8' }} align="center">Current Value</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', color: '#818CF8' }} align="center">30d Performance (%)</TableCell>
-                <TableCell></TableCell>
+                {/* <TableCell sx={{ fontWeight: 'bold', color: '#818CF8' }} align="center">Current Value</TableCell> */}
+                <TableCell>
+              </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -56,8 +60,7 @@ const FundManagerSelectModal = ({ open, onSelect, onClose }) => {
                   <TableCell>{manager.walletId}</TableCell>
                   <TableCell align="center">{manager.subscriberCount}</TableCell>
                   <TableCell align="center">${manager.investedValue.toLocaleString()}</TableCell>
-                  <TableCell align="center">${manager.currentValue.toLocaleString()}</TableCell>
-                  <TableCell align="center">{manager.performance30d}%</TableCell>
+                  {/* <TableCell align="center">${manager.currentValue.toLocaleString()}</TableCell> */}
                   <TableCell>
                     <StyledButton
                       variant="contained"

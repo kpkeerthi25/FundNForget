@@ -11,6 +11,7 @@ import {
   Legend,
 } from 'chart.js';
 import FundManagerService from '../service/FundManagerService';
+import { usePrivy } from '@privy-io/react-auth';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -19,18 +20,18 @@ const FundStatistics = () => {
   const [performanceData, setPerformanceData] = useState([]);
   const [numberOfSubscribers, setNumberOfSubscribers] = useState(0);
   const [totalFundValue, setTotalFundValue] = useState(0);
+  const { logout, getEthersProvider } = usePrivy();
   const [investmentAmount, setInvestmentAmount] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch fund performance
-        const fundPerformance = await FundManagerService.fetchFundPerformance();
+        const signer = await getEthersProvider().getSigner()
+        const walletAddress = await getEthersProvider().getSigner().getAddress()
+        const fundPerformance = await FundManagerService.fetchFundPerformance(signer);
         setPerformanceData(fundPerformance);
 
-        // Fetch fund statistics
-        const { subscriberCount, investedValue, currentValue } =
-          await FundManagerService.fetchFundStatistics();
+        const { subscriberCount, investedValue, currentValue } = await FundManagerService.fetchFundStatistics(signer, walletAddress);
         setNumberOfSubscribers(subscriberCount);
         setInvestmentAmount(investedValue);
         setTotalFundValue(currentValue);
@@ -117,14 +118,6 @@ const FundStatistics = () => {
               <Typography variant="h6">Invested Value</Typography>
               <Typography variant="h5" sx={{ color: '#818CF8' }}>
                 ${investmentAmount.toLocaleString()}
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Paper sx={{ padding: 3, textAlign: 'center' }} elevation={0}>
-              <Typography variant="h6">Current Value</Typography>
-              <Typography variant="h5" sx={{ color: '#818CF8' }}>
-                ${totalFundValue.toLocaleString()}
               </Typography>
             </Paper>
           </Grid>
