@@ -11,6 +11,9 @@ out/
 /broadcast/*
 /bin/*
 
+/broadcast/*
+/bin/*
+
 # Docs
 docs/
 
