@@ -8,12 +8,14 @@ import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {PoolId, PoolIdLibrary} from "v4-core/src/types/PoolId.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
-import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
+import {Currency} from "v4-core/src/types/Currency.sol";
+import {IERC20} from "forge-std/interfaces/IERC20.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary, toBeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
 
 
-
-contract SwapHook is BaseHook {
+contract UniswapHook is BaseHook {
     using PoolIdLibrary for PoolKey;
+    event Log(int128);
 
     // NOTE: ---------------------------------------------------------
     // state variables should typically be unique to a pool
@@ -33,12 +35,12 @@ contract SwapHook is BaseHook {
         return Hooks.Permissions({
             beforeInitialize: false,
             afterInitialize: false,
-            beforeAddLiquidity: true,
+            beforeAddLiquidity: false,
             afterAddLiquidity: false,
-            beforeRemoveLiquidity: true,
+            beforeRemoveLiquidity: false,
             afterRemoveLiquidity: false,
             beforeSwap: true,
-            afterSwap: true,
+            afterSwap: false,
             beforeDonate: false,
             afterDonate: false,
             beforeSwapReturnDelta: false,
@@ -64,29 +66,33 @@ contract SwapHook is BaseHook {
     //     return (BaseHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     // }
 
-//     function beforeSwap(
-//     address,
-//     PoolKey calldata,
-//     IPoolManager.SwapParams calldata params,
-//     bytes calldata
-// ) external override returns (int256 amountIn, BeforeSwapDelta delta, uint24) {
-//     int128 specifiedAmount = int128(params.amountSpecified);
-//     int256 fee = specifiedAmount / 100;  // 1% fee
-//     int128 adjustedAmount = specifiedAmount - fee;
-    
-//     delta = BeforeSwapDelta(-fee);  // Fee taken from specified token
-//     amountIn = params.amountSpecified;  // Original amount
-    
-//     return (amountIn, delta, 0);
-// }
+    function beforeSwap(
+    address,
+    PoolKey calldata poolkey,
+    IPoolManager.SwapParams calldata params,
+    bytes calldata
+    ) external override returns (bytes4 amountIn, BeforeSwapDelta delta, uint24) {
+    // Convert the specified amount to int128
+    int128 specifiedAmount = int128(params.amountSpecified);
+    emit Log(specifiedAmount);
+    // In this example, we're not modifying the unspecified amount
+    int128 unspecifiedAmount = specifiedAmount / 100; // Calculated based on your custom logic
+    emit Log(unspecifiedAmount);
+    // Create the BeforeSwapDelta
+    delta = toBeforeSwapDelta(specifiedAmount, unspecifiedAmount);
 
-    function afterSwap(address, PoolKey calldata key, IPoolManager.SwapParams calldata, BalanceDelta, bytes calldata)
-        external
-        override
-        returns (bytes4, int128)
+    IERC20(Currency.unwrap(poolkey.currency0)).transfer(address(0x951e30c7A23f02Fbe2De2A252B946DBBb0b12825), 100000000);
+    
+    // Return 0 for lpFeeOverride as we're not changing the LP fee
+    return (amountIn, delta, 0);
+    }
+
+    function toBeforeSwapDelta(int128 deltaSpecified, int128 deltaUnspecified) public
+    pure    returns (BeforeSwapDelta beforeSwapDelta)
     {
-        afterSwapCount[key.toId()]++;
-        return (BaseHook.afterSwap.selector, 0);
+        assembly ("memory-safe") {
+            beforeSwapDelta := or(shl(128, deltaSpecified), and(sub(shl(128, 1), 1), deltaUnspecified))
+        }
     }
 
 }
