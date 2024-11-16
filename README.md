@@ -1,6 +1,8 @@
 # FundNForget
 FundNForget is a Web3 DeFi app that let's users invest their crypto assets in funds managed by professional fund managers. The users just need to connect their wallet and choose to invest however much they want in the funds they like and everything else is automated. From the point of view of the fund managers, they need to publish their strategy from their dashboard and the app takes care of implementing it for them.
 
+The application is available for trial: https://main.d6w5dw67swnej.amplifyapp.com/
+
 ## Components
 
 It has three major components:
