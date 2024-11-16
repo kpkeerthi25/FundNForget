@@ -42,15 +42,13 @@ const CurrentStrategies = () => {
 
   const handleCashOut = async (subscriptionId) => {
     try {
-      const result = await InvestorDataService.cashOutStrategy(getEthersProvider(), subscriptionId);
+      const result = await InvestorDataService.cashOutStrategy(getEthersProvider().getSigner(), subscriptionId);
       if (result.success) {
         setAllocations((prev) => prev.filter((item) => item.subscriptionId !== subscriptionId));
       } else {
-        alert(`Cash out failed: ${result.error}`);
       }
     } catch (error) {
       console.error('Error during cash out:', error);
-      alert('An error occurred during cash out.');
     }
   };
 

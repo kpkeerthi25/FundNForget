@@ -67,7 +67,7 @@ class InvestorDataService {
 
   async cashOutStrategy(provider, subscriptionId) {
     const contract = new ethers.Contract(this.contractAddress, FundNForgetAbi, provider);
-    return contract.getAllUserSubscriptions(subscriptionId) // TODO
+    return contract.cashOutSubsription(subscriptionId)
   }
 
   async fetchFundManagers(provider) {
