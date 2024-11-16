@@ -41,3 +41,8 @@ Block scout explorer link to the investors wallet is provided on their screen so
 #### Sign Protocol
 
 The strategies that the fund managers use is stored in an encrypted manner using sign protocol's schemas. Lit protocol is used to encrypt the data related to these strategies. The users who have invested in a particular fund access these strategies directly using the sign protocol.
+
+## Off-chain Node.JS app
+
+The off chain Node.JS app is used to compute the swaps between the various cryptocurrencies used in the strategies. This cannot be done on chain as we want this data to be hidden from the public eye. The backend app uses sign protocol to access the strategy data and lit protocol to decode the encrypted value and then performs the swap operation.
+
