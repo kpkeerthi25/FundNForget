@@ -16,3 +16,4 @@ solmate/=lib/v4-template/lib/v4-core/lib/solmate/
 v4-core/=lib/v4-template/lib/v4-core/
 v4-periphery/=lib/v4-template/lib/v4-periphery/
 v4-template/=lib/v4-template/
+@pythnetwork/pyth-sdk-solidity/=node_modules/@pythnetwork/pyth-sdk-solidity

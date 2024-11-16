@@ -1,13 +1,31 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
+import "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
 
 
 contract FundNForget is ReentrancyGuard {
+    IPyth pyth;
+
+    mapping(address => bytes32) pythNetworkMapping;
+
+    constructor() {
+    // Hard coding base sepolia pyth contract
+    pyth = IPyth(0xA2aa501b19aff244D90cc15a4Cf739D2725B5729);
+
+    // base-eth
+    pythNetworkMapping[0x5dEaC602762362FE5f135FA5904351916053cF70] = 0xeaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a;
+    //base-usdc
+    pythNetworkMapping[0x4200000000000000000000000000000000000006] = 0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace;
+    //base-synthetic-uni
+    pythNetworkMapping[0x6021D8Cc4388f917fc75766dA67eC54A1b4e4Cc6] = 0x78d185a741d07edb3412b09008b7c5cfb9bbbd7d568bf00ba737b456ba171501;
+
+
+  }
     uint256 private _subscriptionIdCounter = 0;
-    string test = "hi world";
 
     struct Investment {
         address tokenAddress;
@@ -97,9 +115,16 @@ contract FundNForget is ReentrancyGuard {
             "provided strategyId is not the valid for the fundManager"
         );
 
+        uint256 initialInvestmentValue = 0;
+
         for (uint256 i = 0; i < initialInvestments.length; i++) {
             IERC20 token = IERC20(initialInvestments[i].tokenAddress);
             token.transferFrom(msg.sender, address(this), initialInvestments[i].value);
+        }
+
+        for (uint256 i = 0; i < initialInvestments.length; i++) {
+            IERC20 token = IERC20(initialInvestments[i].tokenAddress);
+
         }
 
         StrategySubscription memory subscription = StrategySubscription(
@@ -141,5 +166,20 @@ contract FundNForget is ReentrancyGuard {
         require(subscriptionId <= _subscriptionIdCounter, "Invalid subscriptionId");
         return subscriptionIdToStrategySubscriptionMapping[subscriptionId];
     }
+
+    function calculateTokenUSDPrice(address tokenContract) public payable returns(uint256){
+        
+        // Read the current price from a price feed if it is less than 60 seconds old.
+        // Each price feed (e.g., ETH/USD) is identified by a price feed ID.
+        // The complete list of feed IDs is available at https://pyth.network/developers/price-feed-ids
+
+        bytes32 priceFeedId = 0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace; // ETH/USD
+        // PythStructs.Price memory price = pyth.getPriceNoOlderThan(priceFeedId, 600);
+        PythStructs.Price memory price = pyth.getPriceUnsafe(priceFeedId);
+
+        // represent in usd * 10e18
+        uint256 calculatedPrice = (uint(uint64(price.price)) * (10 ** 18)) / (10 ** uint8(uint32(-1 * price.expo)));
+        return calculatedPrice;
+  }
     
 }
