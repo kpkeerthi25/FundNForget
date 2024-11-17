@@ -9,13 +9,21 @@ const FundManagerSelectModal = ({ open, onSelect, onClose }) => {
   const [fundManagers, setFundManagers] = useState([]);
   const { getEthersProvider } = usePrivy();
 
-
   useEffect(() => {
     if (open) {
       const fetchData = async () => {
-        const fetchedManagers = await InvestorService.fetchFundManagers(getEthersProvider().getSigner())
-        console.log("FMS", fetchedManagers)
-        setFundManagers(fetchedManagers);
+        const fetchedManagers = await InvestorService.fetchFundManagers(getEthersProvider().getSigner());
+        console.log("FMS", fetchedManagers);
+
+        // Adding hardcoded "Random" entry
+        const randomManager = {
+          id: 'random', // Unique ID for the hardcoded entry
+          walletId: 'Random',
+          subscriberCount: 'N/A',
+          investedValue: 'N/A',
+        };
+
+        setFundManagers([randomManager, ...fetchedManagers]);
       };
       fetchData();
     }
@@ -49,9 +57,7 @@ const FundManagerSelectModal = ({ open, onSelect, onClose }) => {
                 <TableCell sx={{ fontWeight: 'bold', color: '#818CF8' }}>Wallet ID</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', color: '#818CF8' }} align="center">Subscribers</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', color: '#818CF8' }} align="center">Invested Value</TableCell>
-                {/* <TableCell sx={{ fontWeight: 'bold', color: '#818CF8' }} align="center">Current Value</TableCell> */}
-                <TableCell>
-              </TableCell>
+                <TableCell />
               </TableRow>
             </TableHead>
             <TableBody>
@@ -59,15 +65,16 @@ const FundManagerSelectModal = ({ open, onSelect, onClose }) => {
                 <TableRow key={manager.id}>
                   <TableCell>{manager.walletId}</TableCell>
                   <TableCell align="center">{manager.subscriberCount}</TableCell>
-                  <TableCell align="center">${manager.investedValue.toLocaleString()}</TableCell>
-                  {/* <TableCell align="center">${manager.currentValue.toLocaleString()}</TableCell> */}
+                  <TableCell align="center">
+                    {manager.investedValue === 'N/A' ? 'N/A' : `$${manager.investedValue.toLocaleString()}`}
+                  </TableCell>
                   <TableCell>
                     <StyledButton
                       variant="contained"
                       color="primary"
-                      onClick={() => onSelect(manager.walletId)}
+                      onClick={() => onSelect(manager.walletId === 'Random' ? '0x0000000000000000000000000000000000000000' : manager.walletId)}
                     >
-                      Subscribe
+                      {manager.walletId === 'Random' ? 'Select Random' : 'Subscribe'}
                     </StyledButton>
                   </TableCell>
                 </TableRow>

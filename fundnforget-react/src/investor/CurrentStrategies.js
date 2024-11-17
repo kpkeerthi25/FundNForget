@@ -28,7 +28,7 @@ const CurrentStrategies = () => {
     }).catch((err) => {
       console.error("Network error:", err);
     });
-  }, []);
+  }, [investFundsModalOpen]);
 
   const handleOpenChartModal = (allocation) => {
     setSelectedAllocation(allocation.allocations);
