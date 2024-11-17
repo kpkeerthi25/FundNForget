@@ -1,14 +1,23 @@
+export function generateTokenDiffs(strategyFrom, strartegyTo) {
+    const oldRatios = new Map();
+    const newRatios = new Map();
 
-/*
-    oldRatios: map[token(string), ratios(int [1, 100])]
-    newRatios: map[token(string), ratios(int [1, 100])]
-    returns: list[{fromToken, toToken, quantity}] -> convert {quantity}% of {fromToken} to {toToken}
-*/
-export function generateTokenDiffs(oldRatios, newRatios) {
-    // [token, ratio diff]
+    for (let i = 0; i < strategyFrom.length; ++i) {
+        const contractAddress = strartegyFrom[i].crypto;
+        const percentage = strategyFrom[i].percentage;
+        oldRatios.set(contractAddress, percentage);
+    }
+
+    for (let i = 0; i < strartegyTo.length; ++i) {
+        const contractAddress = strartegyTo[i].crypto;
+        const percentage = strartegyTo[i].percentage;
+        newRatios.set(contractAddress, percentage);
+    }
+
     const increases = new Map();
     const decreases = new Map();
 
+    
     for (const [key, value] of oldRatios.entries()) {
         if (newRatios.has(key)) {
             if (newRatios.get(key) > oldRatios.get(key)) {
