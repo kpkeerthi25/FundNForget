@@ -8,8 +8,27 @@ import "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
 import {IEntropyConsumer} from "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
 import {IEntropy} from "@pythnetwork/entropy-sdk-solidity/IEntropy.sol";
 
+import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
+import {TickMath} from "v4-core/src/libraries/TickMath.sol";
+import {Currency} from "v4-core/src/types/Currency.sol";
+import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
+
+
+
+
 contract FundNForget is ReentrancyGuard, IEntropyConsumer {
 
+    //base swaptest
+    PoolSwapTest swapRouter = PoolSwapTest(address(0x96E3495b712c6589f1D2c50635FDE68CF17AC83c));
+
+    //uniswap beforeHook address
+    address HOOK_ADDR = address(0x7d917B5B323cef1f1bEa9e077FaFE526e2e5cAc0);
+
+    // slippage tolerance to allow for unlimited price impact
+    uint160 public constant MIN_PRICE_LIMIT = TickMath.MIN_SQRT_PRICE + 1;
+    uint160 public constant MAX_PRICE_LIMIT = TickMath.MAX_SQRT_PRICE - 1;
     // -----------------------------------------------
     // NOTE: Pyth Network utils
     // -----------------------------------------------
@@ -22,6 +41,8 @@ contract FundNForget is ReentrancyGuard, IEntropyConsumer {
 
     event Log(address);
     event LogNumber(uint256);
+    event StrategyUpdate(address);
+    event InitialInvestment(uint256);
 
     constructor() {
         // Hard coding base sepolia pyth contract
@@ -29,10 +50,10 @@ contract FundNForget is ReentrancyGuard, IEntropyConsumer {
         entropy = IEntropy(0x41c9e39574F40Ad34c79f1C99B66A45eFB830d4c);
         provider = entropy.getDefaultProvider();
         
-        // base-eth
-        pythNetworkMapping[0x5dEaC602762362FE5f135FA5904351916053cF70] = 0xeaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a;
-        //base-usdc
-        pythNetworkMapping[0x4200000000000000000000000000000000000006] = 0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace;
+        // base-Syneth
+        pythNetworkMapping[0xc0AF1790125acB557467b7d8c13555eC063b096c] = 0xeaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a;
+        //base-Synusdt
+        pythNetworkMapping[0x5dde0A29E8C5E0F2f3657cd65f17f6eA2C91C3EB] = 0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace;
         //base-synthetic-uni
         //mocking uni erc-20 in base sepolia
         pythNetworkMapping[0x6021D8Cc4388f917fc75766dA67eC54A1b4e4Cc6] = 0x78d185a741d07edb3412b09008b7c5cfb9bbbd7d568bf00ba737b456ba171501;
@@ -138,6 +159,10 @@ contract FundNForget is ReentrancyGuard, IEntropyConsumer {
             fundManagers.push(fundMangerAddress);
         }
         fundManagerToLatestAttestationMapping[fundMangerAddress] = latestStrategyAttestationId;
+        
+        // Trigger swap for all subscribers - Off chain takes this information to trigger swap.
+        emit StrategyUpdate(fundMangerAddress);
+
     }
 
     function getLatestStrategyAttestation(
@@ -189,16 +214,10 @@ contract FundNForget is ReentrancyGuard, IEntropyConsumer {
     //If choosing random fundManager - UI will call requestRandomNumber and pass sequenceNumber
     function createSubscriptionForUser(
         address fundManagerAddress,
-        uint64 strategyAttestationId, //optional
         Investment[] memory initialInvestments,
         uint64 sequenceNumber //only for randomising fundManager
     ) external payable nonReentrant {
-        require(
-            fundManagerToLatestAttestationMapping[fundManagerAddress] ==
-                strategyAttestationId || fundManagerAddress == NULL_ADDRESS,
-            "provided strategyId is not the valid for the fundManager"
-        );
-
+        
         if(fundManagerAddress == NULL_ADDRESS) {
             uint256 randomFundManagerIndex = pythSequenceNumberToRandomNumberMapping[sequenceNumber];
             fundManagerAddress = fundManagers[randomFundManagerIndex];
@@ -219,13 +238,17 @@ contract FundNForget is ReentrancyGuard, IEntropyConsumer {
             IERC20 token = IERC20(initialInvestments[i].tokenAddress);
         }
 
+        for(uint256 i = 0; i < initialInvestments.length; i++) {
+            initialInvestmentValue = initialInvestmentValue + calculateTokenUSDPrice(initialInvestments[i].tokenAddress) * initialInvestments[i].value;
+        }
+
         StrategySubscription memory subscription = StrategySubscription(
             _subscriptionIdCounter,
-            strategyAttestationId,
+            fundManagerToLatestAttestationMapping[fundManagerAddress],
             msg.sender,
             fundManagerAddress,
             initialInvestments,
-            0, //TODO
+            initialInvestmentValue, //TODO
             block.timestamp,
             block.timestamp,
             true
@@ -233,8 +256,11 @@ contract FundNForget is ReentrancyGuard, IEntropyConsumer {
 
         subscriptionIdToStrategySubscriptionMapping[_subscriptionIdCounter] = subscription;
         userToStrategySubscriptionIdMapping[msg.sender].push(_subscriptionIdCounter);
+
+        // will trigger off chain to trigger swap to be sync with strategy
+        emit InitialInvestment(_subscriptionIdCounter);
+
         _subscriptionIdCounter += 1;
-        
     }
 
     // redeeming the funds
@@ -252,8 +278,31 @@ contract FundNForget is ReentrancyGuard, IEntropyConsumer {
     // Function called from backend application for swap action
     function performSwapOnBefalf(
         uint256 subscriptionId,
-        SwapObject[] calldata SwapObjects
-    ) external nonReentrant {}
+        SwapObject calldata swapObject
+    ) external nonReentrant {
+
+        StrategySubscription memory subscription = subscriptionIdToStrategySubscriptionMapping[subscriptionId];
+
+        bytes memory hookData = abi.encode(address(subscription.user));
+        PoolKey memory pool = PoolKey({
+            currency0: Currency.wrap(swapObject.tokenA),
+            currency1: Currency.wrap(swapObject.tokenB),
+            fee: 3000,
+            tickSpacing: 60,
+            hooks: IHooks(HOOK_ADDR)
+        });
+        bool zeroForOne = true;
+        IPoolManager.SwapParams memory params =  IPoolManager.SwapParams({
+            zeroForOne: zeroForOne,
+            amountSpecified: int256(swapObject.value),
+            sqrtPriceLimitX96: zeroForOne ? MIN_PRICE_LIMIT : MAX_PRICE_LIMIT // unlimited impact
+        });
+
+        PoolSwapTest.TestSettings memory testSettings =
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+
+        swapRouter.swap(pool, params, testSettings, hookData);
+    }
 
     function getAllUserSubscriptions()
         external
@@ -288,7 +337,7 @@ contract FundNForget is ReentrancyGuard, IEntropyConsumer {
         // Each price feed (e.g., ETH/USD) is identified by a price feed ID.
         // The complete list of feed IDs is available at https://pyth.network/developers/price-feed-ids
 
-        bytes32 priceFeedId = 0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace; // ETH/USD
+        bytes32 priceFeedId =  pythNetworkMapping[tokenContract];
         // PythStructs.Price memory price = pyth.getPriceNoOlderThan(priceFeedId, 600);
         PythStructs.Price memory price = pyth.getPriceUnsafe(priceFeedId);
 
