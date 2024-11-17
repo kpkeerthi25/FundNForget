@@ -39,7 +39,7 @@ const CurrentAllocations = () => {
     };
 
     fetchStrategies();
-  }, []);
+  }, [modalOpen]);
 
   const handleOpenModal = () => setModalOpen(true);
   const handleCloseModal = () => setModalOpen(false);

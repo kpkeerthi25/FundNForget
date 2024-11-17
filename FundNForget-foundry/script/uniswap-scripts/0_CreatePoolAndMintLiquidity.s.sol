@@ -22,15 +22,15 @@ contract CreatePoolAndAddLiquidityScript is Script, Constants, Config {
 
     // --- pool configuration --- //
     // fees paid by swappers that accrue to liquidity providers
-    uint24 lpFee = 1000; // 0.10%
+    uint24 lpFee = 3000; // 0.30%
     int24 tickSpacing = 60;
 
     // starting price of the pool, in sqrtPriceX96
     uint160 startingPrice = 79228162514264337593543950336; // floor(sqrt(1) * 2^96)
 
     // --- liquidity position configuration --- //
-    uint256 public token0Amount = 1e6;
-    uint256 public token1Amount = 1e6;
+    uint256 public token0Amount = 1e4;
+    uint256 public token1Amount = 1e4;
 
     // range of the position
     int24 tickLower = -600; // must be a multiple of tickSpacing
