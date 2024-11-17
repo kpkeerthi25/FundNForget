@@ -12,7 +12,24 @@ It has three major components:
 
 ## On-Chain Smart Contract
 
-The onchain smart contract is where the data related to the investments and the assets are maintained. 
+The onchain smart contract is where the data related to the investments and the assets are maintained. The smart contract address is `0xF425D06d5F95A4caa3452Cb608b461C85c44e646`. We have used the following sign protocol schema: `onchain_evm_84532_0x4e3`
+
+### Created the following synthetic tokens for testing
+
+SynUni - https://sepolia.basescan.org/token/0x6021D8Cc4388f917fc75766dA67eC54A1b4e4Cc6
+
+SynEth - https://sepolia.basescan.org/address/0xc0AF1790125acB557467b7d8c13555eC063b096c
+
+SynUSDT - 
+https://sepolia.basescan.org/token/0x5dde0A29E8C5E0F2f3657cd65f17f6eA2C91C3EB
+
+### Uniswap V4 Liquidity Pools with BeforeSwap hook to enforce fee to the protocol address
+https://sepolia.basescan.org/tx/0x1eedda15742db27418537bb8f585c3c69f1f63bce921f6cf7d59a26a04115738
+
+https://sepolia.basescan.org/tx/0xb3db94867256c6c4dcb96d4c8bb5c0ecbc491eac95773f45e8f8295b3bd926d2
+
+https://sepolia.basescan.org/tx/0x894814a068507a7cea5467b80a6dff3d3e30b85ad7fc674c5674745efce85fb4
+
 
 ### Integrations Used
 
