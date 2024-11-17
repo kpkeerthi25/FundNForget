@@ -1,0 +1,19 @@
+{
+  "name": "lit-protocol-server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@ethersproject/providers": "^5.7.2",
+    "@lit-protocol/auth-helpers": "^6.11.2",
+    "@lit-protocol/constants": "^6.11.2",
+    "@lit-protocol/lit-node-client": "^6.11.2",
+    "ethers": "^5.7.2",
+    "express": "^4.21.1"
+  }
+}
