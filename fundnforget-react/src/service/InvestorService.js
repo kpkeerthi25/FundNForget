@@ -1,8 +1,6 @@
 import FundNForgetAbi from "../abi/FundNForgetAbi";
 import { ethers, BigNumber } from 'ethers';
 import FundManagerService from "./FundManagerService";
-import FxConversionService from "./FxConversionService";
-
 class InvestorDataService {
 
   contractAddress = '0xF425D06d5F95A4caa3452Cb608b461C85c44e646';
@@ -90,9 +88,17 @@ class InvestorDataService {
 
   async investFunds(signer, fundManagerAddress, investmentData) {
     const contract = new ethers.Contract(this.contractAddress, FundNForgetAbi, signer);
+    var sequenceNumber = 0
+    if (fundManagerAddress === "0x0000000000000000000000000000000000000000") {
+      const randomBytes = ethers.utils.randomBytes(32)
+      sequenceNumber = await contract.requestRandomNumber(randomBytes, {
+        value: ethers.BigNumber.from(3000000),
+      });
+    }
+    console.log("SEQNO", sequenceNumber)
     const nonZero = investmentData.filter((it) => it.value != 0)
     console.log("NONZ", nonZero)
-    await contract.createSubscriptionForUser(fundManagerAddress, nonZero, 0)
+    await contract.createSubscriptionForUser(fundManagerAddress, nonZero, sequenceNumber)
   }
 
   // await InvestorService.investFunds(
